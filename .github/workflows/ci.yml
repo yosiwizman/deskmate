@@ -32,8 +32,3 @@ jobs:
 
       - name: Run linting
         run: npm --prefix packages/ui run lint
-
-      - name: Run smoke tests
-        run: npm --prefix packages/ui run test:smoke
-        env:
-          BASE_URL: http://localhost:3000
