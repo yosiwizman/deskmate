@@ -4,17 +4,20 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better caching
 COPY packages/ui/package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install all dependencies (including dev for build)
+RUN npm install
 
-# Copy application code
+# Copy all application files
 COPY packages/ui/ .
 
-# Build the application
+# Build the application with proper environment
 RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
 
 # Expose port (Railway will set PORT env var)
 EXPOSE $PORT
