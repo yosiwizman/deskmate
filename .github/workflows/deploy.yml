@@ -26,5 +26,4 @@ jobs:
         run: railway link --project ${{ secrets.RAILWAY_PROJECT_ID }}
 
       - name: Deploy to Railway
-        run: railway up --service "deskmate-ui" --yes
-        working-directory: packages/ui
+        run: railway up --detach
