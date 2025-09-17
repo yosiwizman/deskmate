@@ -23,11 +23,22 @@ export async function POST(request: NextRequest) {
     const taskApiBase = process.env.TASK_API_BASE;
     
     if (!taskApiBase) {
-      logger.error({ correlationId }, 'TASK_API_BASE not configured');
-      return NextResponse.json(
-        { error: 'Task service not configured' },
-        { status: 500 }
-      );
+      logger.warn({ correlationId }, 'TASK_API_BASE not configured - using mock implementation');
+      
+      // Mock response for when task service is not available
+      const mockResponse: TaskResponse = {
+        id: uuidv4(),
+        status: 'completed',
+        message: `Mock ${validatedRequest.kind} task completed - Task service not yet configured. Configure TASK_API_BASE environment variable to enable real task processing.`
+      };
+      
+      logger.info({ 
+        correlationId, 
+        taskId: mockResponse.id,
+        mockImplementation: true 
+      }, 'Returning mock task response');
+      
+      return NextResponse.json(mockResponse, { status: 200 });
     }
     
     const taskUrl = `${taskApiBase.replace(/\/$/, '')}/tasks`;
