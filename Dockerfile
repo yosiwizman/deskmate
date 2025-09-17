@@ -16,12 +16,8 @@ COPY packages/ui/ .
 # Build the application
 RUN npm run build
 
-# Expose port
-EXPOSE 3000
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD node -e "const http = require('http'); http.get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+# Expose port (Railway will set PORT env var)
+EXPOSE $PORT
 
 # Start the application
-CMD ["npm", "start"]
+CMD ["sh", "-c", "npm start"]
