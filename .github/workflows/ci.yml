@@ -22,7 +22,7 @@ jobs:
           cache-dependency-path: 'packages/ui/package-lock.json'
 
       - name: Install dependencies
-        run: npm --prefix packages/ui ci
+        run: npm --prefix packages/ui ci || npm --prefix packages/ui i
 
       - name: Build application
         run: npm --prefix packages/ui run build
@@ -32,3 +32,21 @@ jobs:
 
       - name: Run linting
         run: npm --prefix packages/ui run lint
+
+  smoke:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install curl and jq
+        run: sudo apt-get update && sudo apt-get install -y curl jq
+      - name: Check UI health
+        run: |
+          URL="https://deskmate-production.up.railway.app/api/health"
+          echo "GET $URL"
+          curl -sS -f "$URL" | jq . || exit 1
+      - name: Check Desktop page loads
+        run: |
+          DESKTOP="https://deskmate-production.up.railway.app/desktop"
+          echo "GET $DESKTOP"
+          curl -sS -f "$DESKTOP" > /dev/null

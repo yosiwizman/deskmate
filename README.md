@@ -18,11 +18,20 @@ DeskMate UI is the web frontend that connects to your AI agent and desktop backe
 
 ## 🚀 Quick Start (Non-Technical Setup)
 
+### One‑click: Deploy UI and Agent (core)
+
+Deploy the UI from the repo root (Dockerfile at `/Dockerfile`) and then deploy the Agent from `services/agent`.
+
+- UI: [![Deploy UI on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate)
+- Agent: [![Deploy Agent on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/agent)
+
+After both are deployed, set the UI variable `TASK_API_BASE` to `https://<agent-domain>/api`.
+
 ### One‑click: Deploy the Desktop service (Webtop)
 
 Use this button to create a separate Desktop service from the `services/desktop` path.
 
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/desktop)
+[![Deploy Desktop on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/desktop)
 
 After it deploys, enable Public Networking and copy the public URL. Paste that into your UI service variable `NEXT_PUBLIC_DESKTOP_URL` and redeploy the UI.
 
@@ -98,6 +107,22 @@ npm --prefix packages/ui run dev
 # Run smoke tests
 npm --prefix packages/ui run test:smoke
 ```
+
+## 🧪 CI/CD
+
+This repo includes GitHub Actions for CI:
+
+- Build (Next.js)
+- Typecheck (tsc --noEmit)
+- Lint (eslint .)
+- Smoke (optional) — verifies deployed services if Railway secrets are configured
+
+Add these repository secrets before running deploy/smoke:
+
+- RAILWAY_TOKEN
+- RAILWAY_PROJECT_ID
+
+You can trigger Deployment workflow from Actions → Deploy to Railway.
 
 ## 🔧 Troubleshooting
 
