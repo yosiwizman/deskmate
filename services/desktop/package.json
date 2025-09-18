@@ -1,0 +1,9 @@
+{
+  "name": "deskmate-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Browser-accessible Linux desktop (Webtop) for DeskMate UI",
+  "scripts": {
+    "start": "echo 'Use Dockerfile build on Railway'"
+  }
+}
