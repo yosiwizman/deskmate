@@ -18,6 +18,14 @@ DeskMate UI is the web frontend that connects to your AI agent and desktop backe
 
 ## 🚀 Quick Start (Non-Technical Setup)
 
+### One‑click: Deploy the Desktop service (Webtop)
+
+Use this button to create a separate Desktop service from the `services/desktop` path.
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/desktop)
+
+After it deploys, enable Public Networking and copy the public URL. Paste that into your UI service variable `NEXT_PUBLIC_DESKTOP_URL` and redeploy the UI.
+
 ### Step 1: Set Up Supabase Database
 
 1. **Go to your Supabase project**: https://supabase.com/dashboard
