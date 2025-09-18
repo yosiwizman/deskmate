@@ -112,9 +112,9 @@ export default function HomePage() {
               <p className="text-gray-600 text-sm">
                 Connect to your virtual desktop environment for advanced tasks.
               </p>
-              <button className="mt-2 px-3 py-1 text-sm border rounded hover:bg-gray-50">
+              <a href="/desktop" className="mt-2 inline-block px-3 py-1 text-sm border rounded hover:bg-gray-50">
                 Launch Desktop
-              </button>
+              </a>
             </div>
           </div>
         </div>
