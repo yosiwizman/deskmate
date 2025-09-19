@@ -51,7 +51,7 @@ Deploy each service using the one-click Railway buttons below. **Deploy in this 
 After all services are deployed:
 
 1. **Copy Agent URL**: Go to your Agent service → Settings → copy the public URL
-2. **Update UI**: In your UI service → Variables → set `TASK_API_BASE` to `https://your-agent-url.railway.app` (no trailing slash)
+2. **Update UI**: In your UI service → Variables → set `TASK_API_BASE` to `https://your-agent-url.railway.app/api` (no trailing slash)
 3. **Copy Desktop URL**: Go to your Desktop service → Settings → Enable Public Networking → copy URL  
 4. **Update UI**: In your UI service → Variables → set `NEXT_PUBLIC_DESKTOP_URL` to your desktop URL
 5. **Redeploy UI**: Trigger a new deployment of the UI service
