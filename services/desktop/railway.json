@@ -1,0 +1,42 @@
+{
+  "name": "DeskMate Desktop",
+  "description": "Browser-accessible Ubuntu XFCE desktop using LinuxServer Webtop with Firefox, LibreOffice, VS Code and productivity tools",
+  "source": {
+    "type": "github",
+    "repo": "yosiwizman/deskmate",
+    "path": "services/desktop"
+  },
+  "services": [
+    {
+      "name": "deskmate-desktop",
+      "source": {
+        "type": "docker",
+        "dockerfile": "./Dockerfile",
+        "path": "services/desktop"
+      },
+      "variables": {
+        "PASSWORD": {
+          "description": "Strong password for desktop access (recommended)",
+          "placeholder": "your-secure-password"
+        },
+        "PUID": "1000",
+        "PGID": "1000",
+        "TZ": "UTC"
+      },
+      "domains": [
+        {
+          "name": "desk-desktop-production.up.railway.app"
+        }
+      ],
+      "healthcheck": {
+        "path": "/healthz"
+      },
+      "volumes": [
+        {
+          "name": "desktop-config",
+          "mountPath": "/config"
+        }
+      ]
+    }
+  ]
+}

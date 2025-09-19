@@ -10,11 +10,14 @@ How to deploy on Railway:
 - Enable Public Networking and copy the public HTTPS domain
 
 Recommended variables for the service:
-- PORT=3000
 - PUID=1000
 - PGID=1000
 - TZ=UTC
 - PASSWORD=SetA-Strong-Password
+
+Note:
+- Do NOT set PORT on Railway. Railway injects PORT automatically. This image now binds nginx to the platform PORT and proxies internally to Webtop on 3002.
+- A public /healthz endpoint is exposed (no auth) for Railway health checks.
 
 Then set in your UI service (deskmate):
 - NEXT_PUBLIC_DESKTOP_URL=https://<that-public-domain>
