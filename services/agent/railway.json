@@ -1,0 +1,39 @@
+{
+  "name": "DeskMate Agent",
+  "description": "Agent service with pg-boss queue and Postgres storage",
+  "source": {
+    "type": "github",
+    "repo": "yosiwizman/deskmate",
+    "path": "services/agent"
+  },
+  "services": [
+    {
+      "name": "deskmate-agent",
+      "source": {
+        "type": "docker",
+        "dockerfile": "./Dockerfile",
+        "path": "services/agent"
+      },
+      "variables": {
+        "DATABASE_URL": {
+          "description": "Postgres connection URL (Railway Postgres)",
+          "placeholder": "postgresql://user:pass@host:port/db"
+        },
+        "PRIMARY_LLM": "anthropic",
+        "PRIMARY_LLM_MODEL": "claude-3-5-sonnet-20240620",
+        "PRIMARY_LLM_API_KEY": {
+          "description": "Anthropic API key (optional: fallback used if missing)",
+          "placeholder": "sk-ant-..."
+        },
+        "UI_ORIGIN": {
+          "description": "Allowed CORS origin for UI",
+          "placeholder": "https://deskmate-production.up.railway.app"
+        }
+      },
+      "domains": [
+        { "name": "deskmate-agent-production.up.railway.app" }
+      ],
+      "healthcheck": { "path": "/healthz" }
+    }
+  ]
+}

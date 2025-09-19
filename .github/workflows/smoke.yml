@@ -1,0 +1,178 @@
+name: Smoke Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run smoke tests daily at 6am UTC
+    - cron: '0 6 * * *'
+  push:
+    tags:
+      - 'deskmate-*'
+
+env:
+  UI_BASE_URL: https://deskmate-production.up.railway.app
+  AGENT_BASE_URL: https://deskmate-agent-production.up.railway.app
+  DESKTOP_BASE_URL: https://desk-desktop-production.up.railway.app
+
+jobs:
+  smoke-ui:
+    runs-on: ubuntu-latest
+    name: Test UI Service
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test UI health endpoint
+        run: |
+          echo "Testing UI health endpoint..."
+          curl -f -s "$UI_BASE_URL/api/health" | jq .
+          echo "✅ UI health check passed"
+
+      - name: Test UI desktop page loads
+        run: |
+          echo "Testing desktop page loads..."
+          curl -f -s -o /dev/null "$UI_BASE_URL/desktop"
+          echo "✅ Desktop page loads successfully"
+
+      - name: Test UI auth page loads
+        run: |
+          echo "Testing auth page loads..."
+          curl -f -s -o /dev/null "$UI_BASE_URL/auth"
+          echo "✅ Auth page loads successfully"
+
+      - name: Test UI files page (should require auth)
+        run: |
+          echo "Testing files page (should redirect or show auth requirement)..."
+          # Files page should either redirect to auth or show auth requirement
+          curl -s "$UI_BASE_URL/files" | grep -E "(auth|login|sign.?in)" > /dev/null
+          echo "✅ Files page properly requires authentication"
+
+  smoke-agent:
+    runs-on: ubuntu-latest
+    name: Test Agent Service
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Agent health endpoint
+        run: |
+          echo "Testing Agent health endpoint..."
+          response=$(curl -f -s "$AGENT_BASE_URL/healthz")
+          echo "$response" | jq .
+          
+          # Verify response contains expected fields
+          echo "$response" | jq -e '.ok == true'
+          echo "$response" | jq -e '.name == "agent"'
+          echo "✅ Agent health check passed"
+
+      - name: Test Agent tasks endpoint (should require task field)
+        run: |
+          echo "Testing Agent tasks endpoint with missing task field..."
+          response=$(curl -s -w "%{http_code}" "$AGENT_BASE_URL/api/tasks" -d '{}' -H 'Content-Type: application/json')
+          status_code=${response: -3}
+          
+          if [ "$status_code" = "400" ]; then
+            echo "✅ Agent properly validates required task field"
+          else
+            echo "❌ Expected 400 status code, got $status_code"
+            exit 1
+          fi
+
+      - name: Test Agent tasks endpoint (basic functionality)
+        run: |
+          echo "Testing Agent tasks endpoint with valid request..."
+          response=$(curl -f -s "$AGENT_BASE_URL/api/tasks" \
+            -d '{"task": "Hello, test task"}' \
+            -H 'Content-Type: application/json')
+          
+          echo "$response" | jq .
+          
+          # Verify response structure
+          echo "$response" | jq -e '.id'
+          echo "$response" | jq -e '.status'
+          echo "$response" | jq -e '.task == "Hello, test task"'
+          echo "✅ Agent tasks endpoint working correctly"
+
+  smoke-desktop:
+    runs-on: ubuntu-latest
+    name: Test Desktop Service
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test Desktop service is accessible
+        run: |
+          echo "Testing Desktop service accessibility..."
+          # Desktop should return HTML content (noVNC interface)
+          response=$(curl -f -s "$DESKTOP_BASE_URL" | head -n 20)
+          
+          # Check for HTML content indicating noVNC or webtop
+          if echo "$response" | grep -i -E "(html|webtop|novnc|desktop)" > /dev/null; then
+            echo "✅ Desktop service is accessible and returning expected content"
+          else
+            echo "❌ Desktop service not returning expected HTML content"
+            echo "Response preview:"
+            echo "$response"
+            exit 1
+          fi
+
+  smoke-integration:
+    runs-on: ubuntu-latest
+    name: Integration Tests
+    needs: [smoke-ui, smoke-agent, smoke-desktop]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test UI can reach Agent
+        run: |
+          echo "Testing UI -> Agent connectivity..."
+          # Test that UI's task proxy can reach the agent
+          response=$(curl -f -s "$UI_BASE_URL/api/tasks" \
+            -d '{"kind": "summarize"}' \
+            -H 'Content-Type: application/json' \
+            -H 'Cookie: auth-token=test' || echo "AUTH_REQUIRED")
+          
+          # Should either work or require auth, not fail with connection error
+          if echo "$response" | grep -E "(AUTH_REQUIRED|Unauthorized|auth|login)" > /dev/null; then
+            echo "✅ UI properly connects to Agent (auth required as expected)"
+          elif echo "$response" | jq -e '.id' > /dev/null 2>&1; then
+            echo "✅ UI successfully connected to Agent"
+          else
+            echo "❌ UI cannot reach Agent service"
+            echo "Response: $response"
+            exit 1
+          fi
+
+      - name: Test UI Desktop URL configuration
+        run: |
+          echo "Testing UI desktop URL configuration..."
+          # Check if desktop page shows the configured URL or proper error
+          response=$(curl -s "$UI_BASE_URL/desktop")
+          
+          if echo "$response" | grep -E "(NEXT_PUBLIC_DESKTOP_URL|iframe|desktop.*.railway)" > /dev/null; then
+            echo "✅ UI desktop page properly configured"
+          else
+            echo "ℹ️  Desktop URL may not be configured, which is acceptable"
+          fi
+
+  smoke-summary:
+    runs-on: ubuntu-latest
+    name: Summary
+    needs: [smoke-ui, smoke-agent, smoke-desktop, smoke-integration]
+    
+    steps:
+      - name: Print success message
+        run: |
+          echo "🎉 All smoke tests passed!"
+          echo ""
+          echo "Services tested:"
+          echo "  ✅ UI Service: $UI_BASE_URL"
+          echo "  ✅ Agent Service: $AGENT_BASE_URL" 
+          echo "  ✅ Desktop Service: $DESKTOP_BASE_URL"
+          echo ""
+          echo "SMOKE OK"

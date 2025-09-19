@@ -1,0 +1,35 @@
+{
+  "name": "deskmate-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DeskMate Agent service (Express + pg-boss)",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "node --watch --enable-source-maps --loader ts-node/esm src/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint . --ext .ts",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "helmet": "^7.1.0",
+    "pg": "^8.11.5",
+    "pg-boss": "^9.2.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.12.12",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.6.3"
+  }
+}

@@ -1,4 +1,4 @@
-name: DeskMate UI CI
+name: DeskMate Monorepo CI
 
 on:
   push:
@@ -7,9 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  ci:
+  ui:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -21,17 +20,42 @@ jobs:
           cache: 'npm'
           cache-dependency-path: 'packages/ui/package-lock.json'
 
-      - name: Install dependencies
+      - name: Install dependencies (UI)
         run: npm --prefix packages/ui ci || npm --prefix packages/ui i
 
-      - name: Build application
+      - name: Build (UI)
         run: npm --prefix packages/ui run build
 
-      - name: Run type checking
+      - name: Typecheck (UI)
         run: npm --prefix packages/ui run typecheck
 
-      - name: Run linting
+      - name: Lint (UI)
         run: npm --prefix packages/ui run lint
+
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'services/agent/package-lock.json'
+
+      - name: Install dependencies (Agent)
+        run: npm --prefix services/agent ci || npm --prefix services/agent i
+
+      - name: Build (Agent)
+        run: npm --prefix services/agent run build
+
+      - name: Typecheck (Agent)
+        run: npm --prefix services/agent run typecheck
+
+      - name: Lint (Agent)
+        run: npm --prefix services/agent run lint
 
   smoke:
     if: github.event_name == 'workflow_dispatch'
@@ -50,3 +74,8 @@ jobs:
           DESKTOP="https://deskmate-production.up.railway.app/desktop"
           echo "GET $DESKTOP"
           curl -sS -f "$DESKTOP" > /dev/null
+      - name: Check Agent health
+        run: |
+          AGENT="https://deskmate-agent-production.up.railway.app/healthz"
+          echo "GET $AGENT"
+          curl -sS -f "$AGENT" | jq . || exit 1

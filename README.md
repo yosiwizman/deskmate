@@ -1,71 +1,100 @@
-# DeskMate AI - Frontend UI
+# DeskMate AI - Complete Stack
 
 [![CI Status](https://github.com/yosiwizman/deskmate/actions/workflows/ci.yml/badge.svg)](https://github.com/yosiwizman/deskmate/actions/workflows/ci.yml)
 [![Deploy Status](https://github.com/yosiwizman/deskmate/actions/workflows/deploy.yml/badge.svg)](https://github.com/yosiwizman/deskmate/actions/workflows/deploy.yml)
+[![Smoke Tests](https://github.com/yosiwizman/deskmate/actions/workflows/smoke.yml/badge.svg)](https://github.com/yosiwizman/deskmate/actions/workflows/smoke.yml)
 
-A Next.js-based frontend for the DeskMate AI office assistant system. This UI provides authentication, file management, task execution, and web search capabilities with a mobile-responsive design.
+A complete AI office assistant system with three services: **UI** (Next.js frontend), **Agent** (Express.js API), and **Desktop** (Linux desktop environment). Deploy the full stack on Railway with authentication, file management, task execution, web search, and an embedded desktop environment.
 
 ## 🎯 What This Project Is
 
-DeskMate UI is the web frontend that connects to your AI agent and desktop backend services. It provides:
+DeskMate is a complete AI office assistant system with three integrated services:
 
-- **Secure Authentication** - Email/password signup and login via Supabase Auth
-- **File Management** - Upload, view, and delete files with user-scoped access
-- **Quick Actions** - One-click task execution (Summarize, Draft email, Create checklist, Extract contacts)
-- **Web Search** - Integrated search with multiple providers (Tavily, Brave, SerpAPI)
+### 🌐 **UI Service** (Next.js Frontend)
+- **Secure Authentication** - Email/password + Google/GitHub via Supabase Auth
+- **File Management** - Upload, view, delete files with user-scoped storage & RLS policies
+- **Quick Actions** - One-click tasks: Summarize, Draft email, Create checklist, Extract contacts
+- **Web Search** - Integrated search with Tavily, Brave, SerpAPI providers
+- **Desktop Integration** - Embedded noVNC desktop environment
 - **Mobile Responsive** - Touch-friendly interface optimized for all devices
-- **Admin Dashboard** - Status monitoring and Railway logs access for administrators
+- **Admin Dashboard** - Status monitoring and Railway logs access
 
-## 🚀 Quick Start (Non-Technical Setup)
+### 🤖 **Agent Service** (Express.js + pg-boss)
+- **Queue-backed Tasks** - POST /api/tasks enqueues, GET /api/tasks/:id polls status
+- **LLM Integration** - Anthropic Claude (fallback offline if no key)
+- **CORS & Security** - Helmet, JSON limits, UI-origin CORS, correlationId in logs
+- **Scalable** - pg-boss workers, Postgres persistence, containerized
 
-### One‑click: Deploy UI and Agent (core)
+### 🖥️ **Desktop Service** (Linux Webtop)
+- **Ubuntu XFCE Desktop** - Browser-accessible via noVNC
+- **Pre-installed Tools** - Firefox, LibreOffice, VS Code, qpdf, tesseract
+- **Persistent Storage** - User profile and files persist across deployments
+- **Password Protected** - Secure desktop access
 
-Deploy the UI from the repo root (Dockerfile at `/Dockerfile`) and then deploy the Agent from `services/agent`.
+## 🚀 Quick Start (One-Click Railway Deployment)
 
-- UI: [![Deploy UI on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate)
-- Agent: [![Deploy Agent on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/agent)
+### Step 1: Deploy All Three Services
 
-After both are deployed, set the UI variable `TASK_API_BASE` to `https://<agent-domain>/api`.
+Deploy each service using the one-click Railway buttons below. **Deploy in this order:**
 
-### One‑click: Deploy the Desktop service (Webtop)
+#### 1. 🌐 Deploy UI Service (Core Frontend)
+[![Deploy UI on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://raw.githubusercontent.com/yosiwizman/deskmate/main/railway.ui.json)
 
-Use this button to create a separate Desktop service from the `services/desktop` path.
+#### 2. 🤖 Deploy Agent Service (API Backend)
+[![Deploy Agent on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://raw.githubusercontent.com/yosiwizman/deskmate/main/services/agent/railway.json)
 
-[![Deploy Desktop on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://github.com/yosiwizman/deskmate/tree/main/services/desktop)
+#### 3. 🖥️ Deploy Desktop Service (Linux Environment)
+[![Deploy Desktop on Railway](https://railway.app/button.svg)](https://railway.app/template/new?templateUrl=https://raw.githubusercontent.com/yosiwizman/deskmate/main/services/desktop/railway.json)
 
-After it deploys, enable Public Networking and copy the public URL. Paste that into your UI service variable `NEXT_PUBLIC_DESKTOP_URL` and redeploy the UI.
+### Step 2: Connect Services
 
-### Step 1: Set Up Supabase Database
+After all services are deployed:
 
-1. **Go to your Supabase project**: https://supabase.com/dashboard
-2. **Open SQL Editor** (left sidebar)
-3. **Copy and paste** the entire contents of `/supabase/migrations/[timestamp]_deskmate_core.sql`
-4. **Click "Run"** to create all tables and security policies
-5. **Go to Settings → API** and copy:
-   - Project URL (starts with `https://`)
-   - `anon` key (public)
-   - `service_role` key (private)
+1. **Copy Agent URL**: Go to your Agent service → Settings → copy the public URL
+2. **Update UI**: In your UI service → Variables → set `TASK_API_BASE` to `https://your-agent-url.railway.app` (no trailing slash)
+3. **Copy Desktop URL**: Go to your Desktop service → Settings → Enable Public Networking → copy URL  
+4. **Update UI**: In your UI service → Variables → set `NEXT_PUBLIC_DESKTOP_URL` to your desktop URL
+5. **Redeploy UI**: Trigger a new deployment of the UI service
 
-### Step 2: Configure Railway Service
+**Expected URLs:**
+- 🌐 UI: `https://deskmate-production.up.railway.app`
+- 🤖 Agent: `https://deskmate-agent-production.up.railway.app` 
+- 🖥️ Desktop: `https://desk-desktop-production.up.railway.app`
 
-1. **Open Railway Dashboard**: https://railway.app/dashboard
-2. **Find your `deskmate-ui` service**
-3. **Go to Variables tab** and set these values:
+### Step 3: Set Up Supabase Database
+
+1. **Create Supabase project**: Go to https://supabase.com/dashboard → "New project"
+2. **Run database migration**:
+   - Open **SQL Editor** (left sidebar)
+   - Copy entire contents of `/supabase/migrations/20250917192921_deskmate_core.sql`
+   - **Click "Run"** to create tables, RLS policies, and storage bucket
+3. **Get API credentials**: Go to **Settings → API** and copy:
+   - **Project URL** (starts with `https://`)
+   - **anon** key (public)
+   - **service_role** key (private)
+
+### Step 4: Configure Environment Variables
+
+#### UI Service Variables
+Go to your **UI service** → **Variables** tab and set:
 
 ```env
-# Paste your Supabase values here
+# Supabase Configuration (from Step 3)
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...your_anon_key
 SUPABASE_SERVICE_ROLE_KEY=eyJ...your_service_role_key
 
-# Paste your API provider keys
+# LLM Provider (get from Anthropic, OpenAI, etc.)
 PRIMARY_LLM_API_KEY=sk-ant-...your_anthropic_key
+
+# Search Provider (get from Tavily, Brave, etc.)
 SEARCH_API_KEY=tvly-...your_tavily_key
 
-# Connect to your task backend
+# Service URLs (set after deploying Agent and Desktop)
 TASK_API_BASE=https://your-agent-service.up.railway.app/api
+NEXT_PUBLIC_DESKTOP_URL=https://your-desktop-service.up.railway.app
 
-# These should already be set correctly
+# Default settings (already configured)
 PRIMARY_LLM=anthropic
 PRIMARY_LLM_MODEL=claude-3-5-sonnet-20240620
 SEARCH_API=tavily
@@ -73,22 +102,82 @@ NEXT_PUBLIC_ADMINS=yosiwizman5638@gmail.com
 APP_NAME=DeskMate AI
 ```
 
-### Step 3: Deploy
+#### Agent Service Variables
+Go to your **Agent service** → **Variables** tab:
 
-1. **Trigger deployment**: Go to GitHub → Actions → "Deploy to Railway" → "Run workflow"
-2. **Or push a tag**: `git tag deskmate-ui-v1.0.0 && git push origin deskmate-ui-v1.0.0`
-3. **Wait 2-3 minutes** for deployment to complete
+```env
+# Postgres (Railway Postgres)
+DATABASE_URL=postgresql://user:pass@host:port/db
 
-### Step 4: Test Your Application
+# LLM Provider
+PRIMARY_LLM=anthropic
+PRIMARY_LLM_MODEL=claude-3-5-sonnet-20240620
+PRIMARY_LLM_API_KEY=sk-ant-... (optional; fallback used if missing)
 
-1. **Open your Railway URL** (provided after deployment)
-2. **Go to `/auth`** to create your account
-3. **Use your admin email**: `yosiwizman5638@gmail.com`
-4. **Test features**:
-   - Click Quick Action buttons (should show "Started: [action]")
-   - Go to `/files` page (should load empty list)
-   - Try search functionality
-   - Look for admin status badge in bottom-right corner
+# CORS
+UI_ORIGIN=https://deskmate-production.up.railway.app
+```
+
+#### Desktop Service Variables
+Go to your **Desktop service** → **Variables** tab:
+
+```env
+# Desktop Access (set a strong password)
+PASSWORD=your-secure-desktop-password
+PUID=1000
+PGID=1000
+TZ=UTC
+```
+
+### Step 5: Test Your Full Stack
+
+1. **Open UI service URL**: `https://deskmate-production.up.railway.app`
+2. **Create account**: Go to `/auth` → Sign up with email/password
+3. **Test all features**:
+   - **Quick Actions**: Click buttons (should show "Started: [action]")
+   - **Files**: Go to `/files` → upload a test file
+   - **Search**: Try the search functionality
+   - **Desktop**: Click "Launch Desktop" → should load Ubuntu XFCE
+   - **Admin Badge**: Look for status badge (bottom-right if you're admin)
+
+### Step 6: Optional CI/CD Setup
+
+PowerShell quick deploy for Agent and UI wiring:
+
+```powershell
+# 1) Link Railway project
+npm i -g @railway/cli
+railway login --browserless --token "$env:RAILWAY_TOKEN"
+railway link --project 22dac265-ded4-4ece-9d74-66e847077195
+
+# 2) Deploy Agent from services/agent
+cd services/agent
+railway up --service deskmate-agent --detach
+
+# 3) Configure Agent variables (set in dashboard or via env)
+# DATABASE_URL, PRIMARY_LLM, PRIMARY_LLM_MODEL, PRIMARY_LLM_API_KEY, UI_ORIGIN
+
+# 4) Get Agent public URL
+$agentUrl = (railway domain --service deskmate-agent | Select-String https:// | Select-Object -First 1).ToString().Trim()
+
+# 5) Wire UI → Agent
+cd ../..
+railway variables --service deskmate-ui --set "TASK_API_BASE=$agentUrl"
+railway up --service deskmate-ui --detach
+
+# 6) Smoke
+Invoke-WebRequest "$agentUrl/healthz"
+```
+
+For automated deployments, add these **GitHub repository secrets**:
+
+- `RAILWAY_TOKEN` - Your Railway API token
+- `RAILWAY_PROJECT_ID` - Your Railway project ID
+
+Then use:
+- **Manual deploy**: GitHub → Actions → "Deploy to Railway" → "Run workflow"
+- **Tag deploy**: `git tag deskmate-v1.0.0 && git push origin deskmate-v1.0.0`
+- **Smoke tests**: GitHub → Actions → "Smoke Tests" → "Run workflow"
 
 ## 🛠️ Development (Windows PowerShell)
 
@@ -158,35 +247,66 @@ The project includes automated workflows:
 ## 🏗️ Architecture
 
 ```
-packages/ui/                    # Next.js Application
-├── app/
-│   ├── (components)/          # React Components
-│   ├── api/                   # API Routes
-│   │   ├── health/           # Health check endpoint
-│   │   ├── search/           # Web search proxy
-│   │   ├── files/            # File management
-│   │   └── tasks/            # Task proxy with retry
-│   ├── auth/                 # Authentication pages
-│   ├── files/                # File management UI
-│   └── globals.css           # Responsive styles
-├── lib/
-│   ├── contracts/           # TypeScript schemas
-│   ├── supabase.ts         # Browser client
-│   ├── supabase-server.ts  # Server client  
-│   └── retry.ts            # Retry logic
-└── scripts/
-    └── smoke.cjs           # Health check tests
-
-supabase/migrations/        # Database schema
-.github/workflows/         # CI/CD pipelines
+🏠 DeskMate Full Stack
+├── 🌐 UI Service (Next.js)         # Frontend at project root
+│   ├── packages/ui/
+│   │   ├── app/
+│   │   │   ├── (components)/      # React components
+│   │   │   │   ├── QuickActions.tsx
+│   │   │   │   ├── DesktopFrame.tsx
+│   │   │   │   └── AdminStatus.tsx
+│   │   │   ├── api/               # API Routes
+│   │   │   │   ├── health/        # Health endpoint
+│   │   │   │   ├── search/        # Web search proxy
+│   │   │   │   ├── files/         # File management
+│   │   │   │   └── tasks/         # Agent proxy
+│   │   │   ├── auth/              # Auth pages
+│   │   │   ├── files/             # File UI
+│   │   │   └── desktop/           # Desktop embed
+│   │   └── lib/
+│   │       ├── supabase.ts    # Auth & DB client
+│   │       └── contracts/     # TypeScript schemas
+│   └── Dockerfile             # UI container
+│
+├── 🤖 Agent Service (Express.js)  # API backend
+│   └── services/agent/
+│       ├── server.js          # Express API server
+│       ├── package.json       # Node.js deps
+│       └── Dockerfile         # Agent container
+│
+├── 🖥️ Desktop Service (Ubuntu)    # Linux environment
+│   └── services/desktop/
+│       └── Dockerfile         # Webtop + tools
+│
+├── 📊 Database (Supabase)         # Postgres + Auth + Storage
+│   └── supabase/migrations/   # Schema + RLS policies
+│
+└── ⚙️ CI/CD (GitHub Actions)      # Automated workflows
+    └── .github/workflows/
+        ├── ci.yml             # Build + test + lint
+        ├── deploy.yml         # Railway deployment
+        └── smoke.yml          # End-to-end tests
 ```
 
 ## 🌐 API Endpoints
 
+### UI Service (deskmate-production.up.railway.app)
 - `GET /api/health` - Service health check
-- `POST /api/search` - Web search with multiple providers  
-- `GET|POST|DELETE /api/files` - File management (auth required)
-- `POST /api/tasks` - Task execution proxy (auth required)
+- `POST /api/search` - Web search with multiple providers (Tavily, Brave, SerpAPI)
+- `GET|POST|DELETE /api/files` - File management with Supabase storage (auth required)
+- `POST /api/tasks` - Task execution proxy to Agent service (auth required)
+- `GET /auth` - Authentication pages (Supabase Auth)
+- `GET /files` - File management interface
+- `GET /desktop` - Embedded desktop environment
+
+### Agent Service (deskmate-agent-production.up.railway.app)
+- `GET /healthz` - Health check ({ ok: true })
+- `POST /api/tasks` - Enqueue a task `{ kind: string, payload?: any }`
+- `GET /api/tasks/:id` - Poll status `{ id, status, result?, error? }`
+
+### Desktop Service (desk-desktop-production.up.railway.app)
+- `GET /` - noVNC web interface to Ubuntu XFCE desktop
+- Pre-installed: Firefox, LibreOffice, VS Code, qpdf, tesseract
 
 ## 🔐 Security Features
 
