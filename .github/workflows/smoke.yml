@@ -80,20 +80,13 @@ jobs:
             exit 1
           fi
 
-      - name: Test Agent tasks endpoint (basic functionality)
+      - name: Enqueue and poll task via Agent smoke script
+        env:
+          BASE_URL: ${{ env.AGENT_BASE_URL }}
         run: |
-          echo "Testing Agent tasks endpoint with valid request..."
-          response=$(curl -f -s "$AGENT_BASE_URL/api/tasks" \
-            -d '{"task": "Hello, test task"}' \
-            -H 'Content-Type: application/json')
-          
-          echo "$response" | jq .
-          
-          # Verify response structure
-          echo "$response" | jq -e '.id'
-          echo "$response" | jq -e '.status'
-          echo "$response" | jq -e '.task == "Hello, test task"'
-          echo "✅ Agent tasks endpoint working correctly"
+          echo "Running Agent smoke script against $BASE_URL"
+          node services/agent/scripts/smoke.mjs
+          echo "✅ Agent enqueue & poll smoke passed"
 
   smoke-desktop:
     runs-on: ubuntu-latest
