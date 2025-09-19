@@ -18,32 +18,44 @@ export default function QuickActions({ onTaskStart }: QuickActionsProps) {
   const [busy, setBusy] = useState<TaskKind | null>(null);
   const [message, setMessage] = useState<string>('');
 
+  const pollStatus = async (id: string) => {
+    let attempts = 0;
+    while (attempts < 20) {
+      const res = await fetch(`/api/tasks/${id}`);
+      if (!res.ok) throw new Error('status failed');
+      const data = await res.json();
+      if (data?.status === 'completed') {
+        const text = data?.result?.output ?? JSON.stringify(data?.result ?? {});
+        return `Completed: ${text}`;
+      }
+      if (data?.status === 'failed') {
+        throw new Error(data?.error || 'Task failed');
+      }
+      await new Promise(r => setTimeout(r, 1000));
+      attempts++;
+    }
+    return 'Still running… you can check later in Activity.';
+  };
+
   const runTask = async (kind: TaskKind) => {
     setBusy(kind);
     setMessage('');
-    
     try {
-      await withRetry(async () => {
+      const { id } = await withRetry(async () => {
         const response = await fetch('/api/tasks', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ kind }),
         });
-
-        if (!response.ok) {
-          throw new Error(`Task failed: ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        return result;
+        if (!response.ok) throw new Error(`Task failed: ${response.statusText}`);
+        return response.json();
       });
-
       setMessage(`Started: ${kind}`);
       onTaskStart?.(kind);
+      const doneMsg = await pollStatus(id);
+      setMessage(doneMsg);
     } catch (error) {
-      setMessage(`Failed to start ${kind}. Try again?`);
+      setMessage(`Failed to run ${kind}. Try again?`);
       console.error('Task error:', error);
     } finally {
       setBusy(null);
@@ -53,7 +65,6 @@ export default function QuickActions({ onTaskStart }: QuickActionsProps) {
   return (
     <div className="space-y-3">
       <h3 className="text-lg font-medium">Quick Actions</h3>
-      
       <div className="tasks-grid">
         {actions.map((action) => (
           <button
@@ -66,9 +77,8 @@ export default function QuickActions({ onTaskStart }: QuickActionsProps) {
           </button>
         ))}
       </div>
-      
       {message && (
-        <div className="text-sm text-gray-600 p-2 bg-gray-50 rounded">
+        <div className="text-sm text-gray-600 p-2 bg-gray-50 rounded whitespace-pre-wrap">
           {message}
         </div>
       )}

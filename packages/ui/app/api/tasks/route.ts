@@ -12,135 +12,50 @@ export async function POST(request: NextRequest) {
   
   try {
     const body = await request.json();
-    const validatedRequest = TaskRequest.parse(body);
-    
-    logger.info({ 
-      correlationId, 
-      idempotencyKey,
-      taskKind: validatedRequest.kind 
-    }, 'Task request received');
+    const validatedRequest = TaskRequest.safeParse(body);
+    if (!validatedRequest.success) {
+      return NextResponse.json({ error: 'Invalid task request format' }, { status: 400 });
+    }
+
+    logger.info({ correlationId, idempotencyKey, taskKind: validatedRequest.data.kind }, 'Task request received');
     
     const taskApiBase = process.env.TASK_API_BASE;
-    
     if (!taskApiBase) {
-      logger.warn({ correlationId }, 'TASK_API_BASE not configured - using mock implementation');
-      
-      // Mock response for when task service is not available
       const mockResponse: TaskResponse = {
         id: uuidv4(),
         status: 'completed',
-        message: `Mock ${validatedRequest.kind} task completed - Task service not yet configured. Configure TASK_API_BASE environment variable to enable real task processing.`
+        message: `Mock ${validatedRequest.data.kind} completed - configure TASK_API_BASE to enable real processing.`
       };
-      
-      logger.info({ 
-        correlationId, 
-        taskId: mockResponse.id,
-        mockImplementation: true 
-      }, 'Returning mock task response');
-      
+      logger.info({ correlationId, taskId: mockResponse.id, mockImplementation: true }, 'Returning mock task response');
       return NextResponse.json(mockResponse, { status: 200 });
     }
     
     const taskUrl = `${taskApiBase.replace(/\/$/, '')}/tasks`;
     
     const response = await withRetry(async () => {
-      logger.info({ 
-        correlationId, 
-        idempotencyKey,
-        attempt: 'current',
-        url: taskUrl 
-      }, 'Making task API request');
-      
       const taskResponse = await fetch(taskUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Idempotency-Key': idempotencyKey,
+          'x-correlation-id': correlationId,
         },
-        body: JSON.stringify(validatedRequest),
+        body: JSON.stringify(validatedRequest.data),
       });
-      
-      // Log response details (without sensitive data)
-      logger.info({ 
-        correlationId, 
-        idempotencyKey,
-        status: taskResponse.status,
-        statusText: taskResponse.statusText
-      }, 'Task API response received');
-      
       if (!taskResponse.ok) {
-        // Check if we should retry based on status code
-        if (taskResponse.status >= 500 && taskResponse.status < 600) {
-          throw new Error(`Task API server error: ${taskResponse.status}`);
-        }
-        
-        // For 4xx errors, don't retry
-        const errorText = await taskResponse.text();
-        logger.warn({ 
-          correlationId, 
-          status: taskResponse.status, 
-          error: errorText 
-        }, 'Task API client error - not retrying');
-        
-        return NextResponse.json(
-          { error: `Task API error: ${taskResponse.statusText}` },
-          { status: taskResponse.status }
-        );
+        if (taskResponse.status >= 500) throw new Error(`Task API server error: ${taskResponse.status}`);
+        return NextResponse.json({ error: `Task API error: ${taskResponse.statusText}` }, { status: taskResponse.status });
       }
-      
       return taskResponse;
-    }, {
-      attempts: 3,
-      baseDelay: 500,
-      maxDelay: 5000,
-    });
+    }, { attempts: 3, baseDelay: 500, maxDelay: 5000 });
     
-    // If response is already a NextResponse (from error handling above), return it
-    if (response instanceof NextResponse) {
-      return response;
-    }
-    
+    if (response instanceof NextResponse) return response;
+
     const responseData = await response.json();
-    
-    // Validate the response matches our expected format
-    try {
-      TaskResponse.parse(responseData);
-    } catch (validationError) {
-      logger.warn({ 
-        correlationId, 
-        validationError: validationError instanceof Error ? validationError.message : String(validationError) 
-      }, 'Task API response validation failed');
-    }
-    
-    logger.info({ 
-      correlationId, 
-      idempotencyKey,
-      taskId: responseData.id,
-      status: responseData.status 
-    }, 'Task request completed successfully');
-    
-    return NextResponse.json(responseData, { status: response.status });
+    return NextResponse.json(responseData, { status: 202 });
     
   } catch (error) {
-    logger.error({ 
-      correlationId, 
-      idempotencyKey,
-      error: error instanceof Error ? error.message : String(error) 
-    }, 'Task request failed');
-    
-    if (error instanceof Error && error.message.includes('validation')) {
-      return NextResponse.json(
-        { error: 'Invalid task request format' },
-        { status: 400 }
-      );
-    }
-    
-    return NextResponse.json(
-      { 
-        status: 'error',
-        message: 'Task request failed. Please try again.' 
-      } as TaskResponse,
-      { status: 500 }
-    );
+    logger.error({ correlationId, idempotencyKey, error: String(error) }, 'Task request failed');
+    return NextResponse.json({ status: 'error', message: 'Task request failed. Please try again.' } as TaskResponse, { status: 500 });
   }
 }
